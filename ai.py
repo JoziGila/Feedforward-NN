@@ -4,7 +4,7 @@ import numpy as np
 
 # Sigmoid activation and its derivative
 SIG = lambda x : 1 / (1 + np.exp(-x))
-dSIG = lambda o : np.multiply(o, (1 - o)) 
+dSIG = lambda o : np.multiply(o, (1 - o))
 
 # Error function and its derivative
 ERROR = lambda t, o : np.multiply(0.5, np.multiply((t - o), (t - o)))
@@ -34,22 +34,22 @@ class Layer(object):
 		return self.output
 
 	def bck (self, dL1):
-		# Derivative of L1 with respect to the output of the layer
-		dOUT = dSIG(self.output)
-		dSUM = np.multiply(dL1, dOUT)
+		# Derivative of L1 /w respect to the sum
+		dSIG_OUT = dSIG(self.output)
+		dL1_SUM = np.multiply(dL1, dSIG_OUT)
 
-		# Calculate the derivative to pass to the next layer
+		# Derivative of L1 /w respect to input (to be passed to L0)
 		W_T = np.transpose(self.weights)
-		dL0 = np.dot(dSUM, W_T)
-		dL0 = np.delete(dL0, -1, 1)
+		dL1_L0 = np.dot(dL1_SUM, W_T)
+		dL1_L0 = np.delete(dL1_L0, -1, 1)
 
 
-		# Change weights
+		# Change the weights using derivative of L1 /w respect to W
 		input_T = np.transpose(self.input)
-		dW = np.dot(input_T, dSUM)
-		self.weights -= self.alpha * dW
+		dL1_W = np.dot(input_T, dL1_SUM)
+		self.weights -= self.alpha * dL1_W
 
-		return dL0
+		return dL1_L0
 
 
 class NeuralNetwork(object):
@@ -64,7 +64,7 @@ class NeuralNetwork(object):
 
 		# Create the output layer
 		self.layerStack = np.append(self.layerStack, [Layer(hiddenNeurons, classes, alpha)])
-	
+
 	def eval(self, input):
         # Forward the signal through the layers
 		lastInput = input
@@ -91,29 +91,25 @@ class NeuralNetwork(object):
 				errorDerivative = dERROR(t, out)
 				for l in range(len(self.layerStack) -1, -1, -1):
 					errorDerivative = self.layerStack[l].bck(errorDerivative)
-				
-				
 
 
 # XOR Test
 i = np.matrix([[0, 0],
-			   [1, 0],
-			   [0, 1],
-			   [1, 1]
-			   ])
+	       [1, 0],
+	       [0, 1],
+	       [1, 1]])
 
 t = np.matrix([[1],
- 			   [0], 
- 			   [0], 
- 			   [1]
- 			   ])
+ 	       [0],
+ 	       [0],
+ 	       [1]])
 
 # Run
 nn = NeuralNetwork(2, 3, 1, 1)
 nn.train(i, t)
 
 while True:
-    # Get input and return evaluation
+	# Get input and return evaluation
 	sample = input("Enter an array: ")
 	sample = np.matrix(sample)
 	print(np.round(nn.eval(sample)))
