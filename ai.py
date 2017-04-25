@@ -34,19 +34,21 @@ class Layer(object):
 		return self.output
 
 	def bck (self, dL1):
-		# Derivative of output and L1
-		dOUT = np.multiply(dL1, dSIG(self.output))
+		# Derivative of L1 with respect to the output of the layer
+		dOUT = dSIG(self.output)
+		dSUM = np.multiply(dL1, dOUT)
 
-		# Derivative of the respective weights
+		# Calculate the derivative to pass to the next layer
+		W_T = np.transpose(self.weights)
+		dL0 = np.dot(dSUM, W_T)
+		dL0 = np.delete(dL0, -1, 1)
+
+
+		# Change weights
 		input_T = np.transpose(self.input)
-		dW = np.dot(input_T, dOUT)
+		dW = np.dot(input_T, dSUM)
 		self.weights -= self.alpha * dW
 
-		# Derivative that is passed to L0
-		transferVector = np.ones_like(self.output)
-		dW_T = np.transpose(dW)
-		dL0 = np.dot(transferVector, dW_T)
-		dL0 = np.delete(dL0, -1, 1)
 		return dL0
 
 
@@ -62,15 +64,12 @@ class NeuralNetwork(object):
 
 		# Create the output layer
 		self.layerStack = np.append(self.layerStack, [Layer(hiddenNeurons, classes, alpha)])
-
-	def layers(self):
-		for layer in self.layerStack:
-			print(layer.weights, "\n")
 	
 	def eval(self, input):
+        # Forward the signal through the layers
 		lastInput = input
-		for layer in self.layerStack:
-			lastInput = layer.fwd(lastInput)
+		for l in self.layerStack:
+			lastInput = l.fwd(lastInput)
 
 		return lastInput
 
@@ -85,9 +84,10 @@ class NeuralNetwork(object):
 				t = target[j]
 				errorVector = ERROR(t, out)
 
+				# Logging the error in the output
 				print(i, "\t", errorVector)
 
-				# Backpropagate the error
+				# Backpropagate the error though the layers
 				errorDerivative = dERROR(t, out)
 				for l in range(len(self.layerStack) -1, -1, -1):
 					errorDerivative = self.layerStack[l].bck(errorDerivative)
@@ -105,13 +105,15 @@ i = np.matrix([[0, 0],
 t = np.matrix([[1],
  			   [0], 
  			   [0], 
- 			   [1]])
+ 			   [1]
+ 			   ])
 
 # Run
-nn = NeuralNetwork(2, 3, 1)
+nn = NeuralNetwork(2, 3, 1, 1)
 nn.train(i, t)
 
 while True:
+    # Get input and return evaluation
 	sample = input("Enter an array: ")
 	sample = np.matrix(sample)
-	print(nn.eval(sample))
+	print(np.round(nn.eval(sample)))
